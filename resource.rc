@@ -1,0 +1,59 @@
+#include "resource.h"
+#include <windows.h>
+#include <commctrl.h>
+
+// Icon
+IDI_APP_ICON ICON "Assets\\Mermaid.ico"
+
+// Menu
+IDC_MAIN_MENU MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",        ID_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",    ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",       ID_FILE_SAVE
+        MENUITEM "Save &As...",         ID_FILE_SAVEAS
+        MENUITEM SEPARATOR
+        MENUITEM "Export &PNG...",      ID_FILE_EXPORTPNG
+        MENUITEM "Export S&VG...",      ID_FILE_EXPORTSVG
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit\tAlt+F4",       ID_FILE_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",       ID_EDIT_UNDO
+        MENUITEM "&Redo\tCtrl+Y",       ID_EDIT_REDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",        ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",       ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",      ID_EDIT_PASTE
+        MENUITEM SEPARATOR
+        MENUITEM "Select &All\tCtrl+A", ID_EDIT_SELECTALL
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Render\tF5",         ID_VIEW_RENDER
+        MENUITEM SEPARATOR
+        MENUITEM "Toggle &Split",       ID_VIEW_SPLIT
+        MENUITEM SEPARATOR
+        MENUITEM "Zoom &In\tCtrl++",    ID_VIEW_ZOOMIN
+        MENUITEM "Zoom &Out\tCtrl+-",   ID_VIEW_ZOOMOUT
+        MENUITEM "&Reset Zoom\tCtrl+0", ID_VIEW_ZOOMRESET
+    END
+    POPUP "&Search"
+    BEGIN
+        MENUITEM "&Find...\tCtrl+F",    ID_SEARCH_FIND
+        MENUITEM "&Replace...\tCtrl+H", ID_SEARCH_REPLACE
+        MENUITEM "&Go to Line...\tCtrl+G", ID_SEARCH_GOTO
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&Documentation",      ID_HELP_DOCS
+        MENUITEM SEPARATOR
+        MENUITEM "&About Mermaid Editor", ID_HELP_ABOUT
+    END
+END
+
+// Manifest for modern controls
+1 24 "app.manifest"

@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "48LDNWVqIBk=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\ajayd\\Documents\\Project\\Mermaid\\Mermaid.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\ajayd\\.nuget\\packages\\icsharpcode.avalonedit\\4.3.0-alpha-00000000\\icsharpcode.avalonedit.4.3.0-alpha-00000000.nupkg.sha512",
+    "C:\\Users\\ajayd\\.nuget\\packages\\microsoft.web.webview2\\1.0.3595.46\\microsoft.web.webview2.1.0.3595.46.nupkg.sha512"
+  ],
+  "logs": []
+}

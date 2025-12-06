@@ -1,0 +1,31 @@
+# CMake build directory
+build/
+out/
+bin/
+
+# Visual Studio / VS Code
+.vscode/
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Object files and executables
+*.obj
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.o
+*.a
+
+# Local artifacts
+.gemini/
+.agent/
+
+# Temp files
+*.tmp
+*.log

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: #1e1e2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #graph {
+            background: #282a36;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        #graph svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .error {
+            color: #ff6b6b;
+            padding: 20px;
+            background: #3d2029;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .placeholder {
+            color: #6272a4;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div id="container">
+        <div id="graph">
+            <p class="placeholder">Enter Mermaid diagram code...</p>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: false,
+            theme: 'dark',
+            securityLevel: 'loose',
+            fontFamily: 'Segoe UI, sans-serif'
+        });
+
+        window.updateMermaid = async function(code) {
+            const element = document.getElementById('graph');
+            
+            if (!code || code.trim() === '') {
+                element.innerHTML = '<p class="placeholder">Enter Mermaid diagram code...</p>';
+                return;
+            }
+            
+            try {
+                // Generate unique ID for each render
+                const id = 'mermaid-' + Date.now();
+                const { svg } = await mermaid.render(id, code);
+                element.innerHTML = svg;
+            } catch (error) {
+                console.error(error);
+                element.innerHTML = '<div class="error">Syntax Error: ' + error.message + '</div>';
+            }
+        };
+
+        // Initial render if there's default content
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ready to receive updates
+            console.log('Mermaid preview ready');
+        });
+    </script>
+</body>
+</html>

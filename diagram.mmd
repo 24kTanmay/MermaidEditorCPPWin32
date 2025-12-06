@@ -1,0 +1,245 @@
+---
+config:
+  layout: elk
+  theme: redux
+  look: neo
+---
+flowchart TB
+ subgraph S1_Logic["Logic Flow"]
+        S1_F1("main()<br>(Entry Point)")
+        S1_Setup("Setup:<br>Load Model to CPU/GPU<br>Limit: RECORDS_TO_PROCESS")
+        S1_Loop("Loop over records<br>(Iterate JSONL)")
+        S1_F2("paraphrase_text()<br>(Core Function)")
+        S1_Tok("Tokenizer<br>(Prefix: 'paraphrase: ' + text)")
+        S1_Gen("model.generate()<br>(Run T5 Inference)")
+        S1_Params("Params:<br>num_beams=5<br>num_return_sequences=1<br>max_length=128<br>truncation=True")
+        S1_Aug("Augmentation<br>(Append '_aug' to ID)")
+        S1_Write("Write JSONL<br>(Original + Augmented)")
+  end
+ subgraph Step1["Step 1: Data Augmentation"]
+    direction TB
+        S1_Input("data/python_data.json<br>(Original Dataset)")
+        S1_Script("text2code_mrpt/paraphrase_dataset.py<br>(Augmentation Script)")
+        S1_Model("T5 Model<br>(t5_paraphraser_model)")
+        S1_Logic
+        S1_Output("data_augmented/python_data.json<br>(Augmented Dataset)")
+  end
+ subgraph S2_Tokenization["Tokenization Logic (tokenization.py)"]
+        S2_Script1("source/tokenization.py")
+        S2_F1("tokenization_function_raw()<br>(Prepare Input)")
+        S2_Sig("Extract Signature:<br>Find ':  '")
+        S2_Seq("Sequence Construction:<br>[beginoftext] signature [comments] doc [python] code [eot]")
+        S2_Special("Special Tokens Added:<br>&lt;eod&gt;, &lt;eot&gt;, &lt;pad&gt;, &lt;python&gt;, &lt;comments&gt;,<br>&lt;NEW_LINE&gt;, &lt;INDENT&gt;, &lt;DEDENT&gt;, &lt;mask&gt;")
+        S2_Masks("Mask Generation:<br>code_mask: 1 for sig/code, 0 for doc<br>docstr_mask: 1 for sig/doc, 0 for code<br>prefix_lm_token_idx: len(sig+doc)")
+  end
+ subgraph S2_PES["PES Logic (lm_trainer.py)"]
+        S2_Script2("source/lm_trainer.py")
+        S2_Arg("Arg: --separate_some_embeds<br>or --separate_embeds")
+        S2_Read("Read python_tokens.txt")
+        S2_Map("Build replicated_tokens_map<br>(Map old ID to new ID)")
+        S2_Vocab("Add Tokens to Vocab:<br>[_DUP_]def, [_DUP_]return...<br>(Appended to end of vocab)")
+        S2_Init("Weight Initialization (Hack):<br>wte[tgt] = wte[src]<br>(Copy weights from original)")
+  end
+ subgraph Step2["Step 2: Tokenization & PES"]
+    direction TB
+        S2_Tokens("source/python_tokens.txt<br>(Keywords List)")
+        S2_Tokenization
+        S2_PES
+  end
+ subgraph S3_TrainingLogic["Training Process"]
+        S3_Hyper("Hyperparams:<br>LR=1e-5, BS=8, ACC=4<br>Epochs=10, Warmup=0.01")
+        S3_Args("Args:<br>--predict_code=True<br>--dataset_name=pycodegpt_partial_sep<br>--deepspeed=ds_config_s2_no_offload.json")
+        S3_Class("CustomTrainer<br>(HuggingFace Trainer)")
+        S3_Collator("DataCollatorWithPaddingForCLM<br>(Batching &amp; Padding)")
+        S3_Batch("Batch Preparation:<br>Apply code_mask to labels")
+        S3_Loss("Loss Calculation:<br>Ignore indices where code_mask=0<br>(Train only on code)")
+        S3_Opt("Optimizer: AdamW<br>(Update Weights)")
+        S3_Callback("GenerationCallback<br>(Log samples during training)")
+  end
+ subgraph Step3["Step 3: Training (Code-CLM)"]
+    direction TB
+        S3_RunScript("source/run_model.sh<br>(Launch Script)")
+        S3_TrainerScript("source/lm_trainer.py<br>(Training Script)")
+        S3_TrainingLogic
+        S3_ModelOut("Trained Model Weights<br>(out_repo_run_pycodegpt/pytorch_model.bin)")
+  end
+ subgraph S4_Gen["Generation Phase (generation.py)"]
+        S4_GenScript("source/generation.py")
+        S4_DS("Dataset: PycodegptDataset<br>(Prepare Prompts)")
+        S4_Prompt("Prompt Construction:<br>[beginoftext] signature [comments] doc [python]")
+        S4_GenFunc("model.generate()<br>(Inference)")
+        S4_GenParams("Params:<br>temp=0.95, top_p=0.8<br>num_return_sequences=200 (or 400 w/ filter)")
+        S4_Post("post_process_generated_tokens()<br>(Clean Indentation &amp; Special Tokens)")
+        S4_RawOut("samples_400.jsonl<br>(Raw Candidates)")
+  end
+ subgraph S4_Filt["Uncertainty Filtering Phase (filter_generations.py)"]
+        S4_FiltScript("source/filter_generations.py")
+        S4_FiltMain("main()")
+        S4_Group("group_by_task()<br>(Cluster by Problem)")
+        S4_Matrix("Distance Matrix Calculation<br>(All-vs-All, Parallel Pool)")
+        S4_Dist("calc_distance_pair()<br>Lib: Levenshtein")
+        S4_Agree("Calculate Agreement Score<br>(Count neighbors where dist &lt; len * 0.1)")
+        S4_Select("Select Top k (200)<br>(Remove Outliers)")
+        S4_FiltOut("samples_filtered_200.jsonl<br>(Best Candidates)")
+  end
+ subgraph Step4["Step 4: Evaluation Pipeline"]
+    direction TB
+        S4_OrchScript("source/geneval_uncertainty_filter.sh<br>(Orchestrator)")
+        S4_HumanEval("HumanEval Dataset<br>(Test Problems)")
+        S4_Gen
+        S4_Filt
+  end
+ subgraph S5_Calc["Calculation Logic"]
+        S5_Read("read_dataset(HumanEval)")
+        S5_Exec("check_correctness()<br>(Test Runner)")
+        S5_ExecLogic("Construct Python Script:<br>Imports + Prompt + Code + Test")
+        S5_Thread("ThreadPoolExecutor<br>(Parallel Execution)")
+        S5_Agg("Aggregation:<br>Macro (by Task ID)<br>Micro (by Base Task ID)")
+        S5_Est("estimate_pass_at_k()<br>(Unbiased Estimator)")
+        S5_Formula("Formula: 1 - C(n-c, k) / C(n, k)")
+  end
+ subgraph Step5["Step 5: Metrics Calculation"]
+    direction TB
+        S5_Wrapper("CodeGeeX/scripts/evaluate_humaneval_x.sh<br>(Wrapper)")
+        S5_PyScript("CodeGeeX/.../evaluate_humaneval_x.py<br>(Metric Script)")
+        S5_Calc
+        S5_Result("Final Scores:<br>pass@1, pass@10, pass@100")
+  end
+    S1_Input --> S1_Script
+    S1_Script --> S1_F1
+    S1_F1 --> S1_Setup
+    S1_Setup --> S1_Loop
+    S1_Loop --> S1_F2
+    S1_Model -.-> S1_F2
+    S1_F2 --> S1_Tok
+    S1_Tok --> S1_Gen
+    S1_Gen --- S1_Params
+    S1_Gen --> S1_Aug
+    S1_Aug --> S1_Write
+    S1_Write --> S1_Output
+    S1_Output --> S2_Script1
+    S2_Script1 --> S2_F1
+    S2_F1 --> S2_Sig
+    S2_Sig --> S2_Seq
+    S2_Seq --> S2_Special
+    S2_Special --> S2_Masks
+    S2_Tokens --> S2_Script2
+    S2_Script2 --> S2_Arg
+    S2_Arg --> S2_Read
+    S2_Read --> S2_Map
+    S2_Map --> S2_Vocab
+    S2_Vocab --> S2_Init
+    S2_Masks --> S3_RunScript
+    S2_Init --> S3_RunScript
+    S3_RunScript --> S3_TrainerScript
+    S3_TrainerScript --> S3_Hyper
+    S3_Hyper --> S3_Args
+    S3_Args --> S3_Class
+    S3_Class --> S3_Collator
+    S3_Collator --> S3_Batch
+    S3_Batch --> S3_Loss
+    S3_Loss --> S3_Opt
+    S3_Opt --> S3_Callback & S3_ModelOut
+    S3_ModelOut --> S4_OrchScript
+    S4_HumanEval --> S4_OrchScript
+    S4_OrchScript --> S4_GenScript
+    S4_GenScript --> S4_DS
+    S4_DS --> S4_Prompt
+    S4_Prompt --> S4_GenFunc
+    S4_GenFunc --- S4_GenParams
+    S4_GenFunc --> S4_Post
+    S4_Post --> S4_RawOut
+    S4_RawOut --> S4_FiltScript
+    S4_FiltScript --> S4_FiltMain
+    S4_FiltMain --> S4_Group
+    S4_Group --> S4_Matrix
+    S4_Matrix --> S4_Dist
+    S4_Dist --> S4_Agree
+    S4_Agree --> S4_Select
+    S4_Select --> S4_FiltOut
+    S4_FiltOut --> S5_Wrapper
+    S5_Wrapper --> S5_PyScript
+    S5_PyScript --> S5_Read
+    S5_Read --> S5_Exec
+    S5_Exec --> S5_ExecLogic
+    S5_ExecLogic --> S5_Thread
+    S5_Thread --> S5_Agg
+    S5_Agg --> S5_Est
+    S5_Est --> S5_Formula
+    S5_Formula --> S5_Result
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    Step4 --> Step5
+    S4_Gen --> n1["Untitled Node"]
+
+     S1_F1:::func
+     S1_Setup:::logic
+     S1_Loop:::logic
+     S1_F2:::func
+     S1_Tok:::logic
+     S1_Gen:::func
+     S1_Params:::param
+     S1_Aug:::logic
+     S1_Write:::logic
+     S1_Input:::data
+     S1_Script:::script
+     S1_Model:::file
+     S1_Output:::data
+     S2_Script1:::script
+     S2_F1:::func
+     S2_Sig:::logic
+     S2_Seq:::logic
+     S2_Special:::logic
+     S2_Masks:::logic
+     S2_Script2:::script
+     S2_Arg:::param
+     S2_Read:::logic
+     S2_Map:::logic
+     S2_Vocab:::logic
+     S2_Init:::logic
+     S2_Tokens:::data
+     S3_Hyper:::param
+     S3_Args:::param
+     S3_Class:::func
+     S3_Collator:::func
+     S3_Batch:::logic
+     S3_Loss:::logic
+     S3_Opt:::logic
+     S3_Callback:::logic
+     S3_RunScript:::script
+     S3_TrainerScript:::script
+     S3_ModelOut:::data
+     S4_GenScript:::script
+     S4_DS:::func
+     S4_Prompt:::logic
+     S4_GenFunc:::func
+     S4_GenParams:::param
+     S4_Post:::func
+     S4_RawOut:::data
+     S4_FiltScript:::script
+     S4_FiltMain:::func
+     S4_Group:::func
+     S4_Matrix:::logic
+     S4_Dist:::func
+     S4_Agree:::logic
+     S4_Select:::logic
+     S4_FiltOut:::data
+     S4_OrchScript:::script
+     S4_HumanEval:::data
+     S5_Read:::func
+     S5_Exec:::func
+     S5_ExecLogic:::logic
+     S5_Thread:::logic
+     S5_Agg:::logic
+     S5_Est:::func
+     S5_Formula:::logic
+     S5_Wrapper:::script
+     S5_PyScript:::script
+     S5_Result:::data
+    classDef file fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef func fill:#fff9c4,stroke:#fbc02d,stroke-width:1px
+    classDef data fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5
+    classDef script fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef logic fill:#ffe0b2,stroke:#f57c00,stroke-width:1px
+    classDef param fill:#e0f7fa,stroke:#006064,stroke-width:1px,stroke-dasharray: 2 2

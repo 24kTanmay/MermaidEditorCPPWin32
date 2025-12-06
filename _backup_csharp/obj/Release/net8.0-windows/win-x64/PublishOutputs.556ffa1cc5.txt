@@ -1,0 +1,16 @@
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\MermaidEditor.exe
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\mermaid.js
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\svg-pan-zoom.js
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\MermaidEditor.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\MermaidEditor.deps.json
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\MermaidEditor.runtimeconfig.json
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\MermaidEditor.pdb
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\ICSharpCode.AvalonEdit.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\WebView2Loader.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Core.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.WinForms.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Wpf.dll
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Core.xml
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.WinForms.xml
+C:\Users\ajayd\Documents\Project\Mermaid\bin\Release\net8.0-windows\win-x64\publish\Microsoft.Web.WebView2.Wpf.xml
